@@ -1,0 +1,5 @@
+/Users/nromike/Desktop/projects/WebSocketServer/bin/Debug/WebSocketServer.exe
+/Users/nromike/Desktop/projects/WebSocketServer/bin/Debug/WebSocketServer.exe.mdb
+/Users/nromike/Desktop/projects/WebSocketServer/obj/Debug/WebSocketServer.csprojResolveAssemblyReference.cache
+/Users/nromike/Desktop/projects/WebSocketServer/obj/Debug/WebSocketServer.exe
+/Users/nromike/Desktop/projects/WebSocketServer/obj/Debug/WebSocketServer.exe.mdb
