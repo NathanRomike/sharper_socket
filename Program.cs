@@ -8,15 +8,16 @@ namespace WebSocketServer
     internal static class Program
     {
         private const string ListeningIpAddress = "127.0.0.1";
+        private const int Port = 80;
         
         public static void Main(string[] args)
         {
-            var server = new TcpListener(IPAddress.Parse(ListeningIpAddress), 80);
+            var server = new TcpListener(IPAddress.Parse(ListeningIpAddress), Port);
             server.Start();
-            Console.WriteLine($"Server has started on 127.0.0.1:80 {Environment.NewLine} Waiting for a connection...");
+            Console.WriteLine($"Server has started on {ListeningIpAddress}:{Port} {Environment.NewLine} Waiting for a connection...");
 
             var client = server.AcceptTcpClient();
-            Console.WriteLine("A client connected.");
+            Console.WriteLine("Client connected!");
 
             var stream = client.GetStream();
 
@@ -35,18 +36,16 @@ namespace WebSocketServer
 
                 const string endOfLine = "\r\n";
 
+                var webSocketAccept = Convert.ToBase64String(System.Security.Cryptography.SHA1.Create()
+                    .ComputeHash(Encoding.UTF8.GetBytes(
+                        new System.Text.RegularExpressions.Regex("Sec-WebSocket-Key: (.*)").Match(data)
+                            .Groups[1]
+                            .Value.Trim() + wsGuid)));
+
                 var response = Encoding.UTF8.GetBytes("HTTP/1.1 101 Switching Protocols" + endOfLine +
                                                       "Connection: Upgrade" + endOfLine + 
                                                       "Upgrade: websocket" + endOfLine +
-                                                      "Sec-WebSocket-Accept: " + 
-                                                      Convert.ToBase64String(System
-                                                          .Security.Cryptography.SHA1.Create()
-                                                          .ComputeHash(Encoding.UTF8.GetBytes(
-                                                              new System.Text.RegularExpressions.Regex(
-                                                                      "Sec-WebSocket-Key: (.*)").Match(data)
-                                                                  .Groups[1]
-                                                                  .Value.Trim() +
-                                                              wsGuid))) + endOfLine +
+                                                      "Sec-WebSocket-Accept: " + webSocketAccept + endOfLine +
                                                       endOfLine);
                 
                 stream.Write(response, 0, response.Length);
