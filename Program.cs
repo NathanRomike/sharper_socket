@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -39,9 +41,7 @@ namespace WebSocketServer
             
             while (true)
             {
-                while (!_stream.DataAvailable)
-                {
-                }
+                while (!_stream.DataAvailable) ;
                 var bytes = new byte[client.Available];
                 _stream.Read(bytes, 0, bytes.Length);
                 var data = Encoding.UTF8.GetString(bytes);
@@ -51,8 +51,16 @@ namespace WebSocketServer
                     PerformHandshake(data);
                     continue;
                 }
+
+                var decodedMessage = DecodeClientMessage(bytes);
                 
-                Console.WriteLine($"client message data received: {bytes}");
+                decodedMessage.ForEach(byteArray =>
+                {
+                    foreach (var thisByte in byteArray)
+                    {
+                        Console.Write(Convert.ToChar(thisByte));
+                    }
+                });
             }
         }
 
@@ -77,6 +85,62 @@ namespace WebSocketServer
                                                   endOfLine);
                 
             _stream.Write(response, 0, response.Length);
+        }
+
+        private static List<byte[]> DecodeClientMessage(IReadOnlyList<byte> messageBytes)
+        {
+            var decodedReturn = new List<byte[]>();
+            var offset = 0;
+            while (offset + 6 < messageBytes.Count)
+            {
+                var length = messageBytes[offset + 1] - 0x80;
+
+                if (length <= 125)
+                {
+                    var key = new[]
+                    {
+                        messageBytes[offset + 2], 
+                        messageBytes[offset + 3], 
+                        messageBytes[offset + 4], 
+                        messageBytes[offset + 5]
+                    };
+
+                    var decoded = new byte[length];
+                    for (var i = 0; i < length; i++)
+                    {
+                        var realPosition = offset + 6 + i;
+                        decoded[i] = (byte) (messageBytes[realPosition] ^ key[i % 4]);
+                    }
+
+                    offset += 6 + length;
+                    decodedReturn.Add(decoded);
+                }
+                else
+                {
+                    var a = messageBytes[offset + 2];
+                    var b = messageBytes[offset + 3];
+                    length = (a << 8) + b;
+
+                    var key = new[]
+                    {
+                        messageBytes[offset + 4], 
+                        messageBytes[offset + 5], 
+                        messageBytes[offset + 6],
+                        messageBytes[offset + 7]
+                    };
+
+                    var decoded = new byte[length];
+                    for (var i = 0; i < length; i++)
+                    {
+                        var realPostion = offset + 8 + i;
+                        decoded[i] = (byte) (messageBytes[realPostion] ^ key[i % 4]);
+                    }
+
+                    offset += 8 + length;
+                    decodedReturn.Add(decoded);
+                }
+            }
+            return decodedReturn;
         }
     }
 }
