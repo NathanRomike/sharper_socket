@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Net.WebSockets;
 using System.Text;
 
 namespace WebSocketServer
@@ -12,9 +12,9 @@ namespace WebSocketServer
         private const string ListeningIpAddress = "127.0.0.1";
         private const int Port = 80;
 
-        private static TcpListener _tcpListener = null;
-        private static TcpClient _tcpClient = null;
-        private static NetworkStream _stream = null;
+        private static TcpListener _tcpListener;
+        private static TcpClient _tcpClient;
+        private static NetworkStream _stream;
         
         public static void Main(string[] args)
         {
@@ -51,7 +51,7 @@ namespace WebSocketServer
                     PerformHandshake(data);
                     continue;
                 }
-
+                
                 var decodedMessage = DecodeClientMessage(bytes);
                 
                 decodedMessage.ForEach(byteArray =>
@@ -61,14 +61,14 @@ namespace WebSocketServer
                         Console.Write(Convert.ToChar(thisByte));
                     }
                 });
+                CloseConnection();
+                break;
             }
         }
 
         private static void PerformHandshake(string clientReqest)
         {
             const string wsGuid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-
-            Console.WriteLine($"Received GET request: {Environment.NewLine} {clientReqest}");
 
             const string endOfLine = "\r\n";
 
@@ -141,6 +141,13 @@ namespace WebSocketServer
                 }
             }
             return decodedReturn;
+        }
+
+        private static void CloseConnection()
+        {
+            _stream.Close();
+            _tcpClient.Close();
+            _tcpListener.Stop();
         }
     }
 }
